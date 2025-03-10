@@ -1,0 +1,131 @@
+version: "2"
+
+networks:
+  fabric_network:
+
+volumes:
+  peer0.regulatory.resl.com:
+  peer0.brokerage.resl.com:
+  orderer1.resl.com:
+  orderer2.resl.com:
+
+services:
+  # ---------------------- Orderer Nodes ----------------------
+  orderer1.resl.com:
+    container_name: orderer1.resl.com
+    image: hyperledger/fabric-orderer:latest
+    environment:
+      - ORDERER_GENERAL_LOGLEVEL=info
+      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+      - ORDERER_GENERAL_LISTENPORT=6050
+      - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
+      - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/msp
+    volumes:
+      - ./crypto-config/ordererOrganizations/resl.com/orderers/orderer1.resl.com/msp:/var/hyperledger/orderer/msp
+      - ./crypto-config/ordererOrganizations/resl.com/orderers/orderer1.resl.com/tls:/var/hyperledger/orderer/tls
+      - orderer1.resl.com:/var/hyperledger/production
+    ports:
+      - 6050:6050
+    networks:
+      - fabric_network
+
+  orderer2.resl.com:
+    container_name: orderer2.resl.com
+    image: hyperledger/fabric-orderer:latest
+    environment:
+      - ORDERER_GENERAL_LOGLEVEL=info
+      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+      - ORDERER_GENERAL_LISTENPORT=6051
+      - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
+      - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/msp
+    volumes:
+      - ./crypto-config/ordererOrganizations/resl.com/orderers/orderer2.resl.com/msp:/var/hyperledger/orderer/msp
+      - ./crypto-config/ordererOrganizations/resl.com/orderers/orderer2.resl.com/tls:/var/hyperledger/orderer/tls
+      - orderer2.resl.com:/var/hyperledger/production
+    ports:
+      - 6051:6051
+    networks:
+      - fabric_network
+
+  # ---------------------- Peer Nodes ----------------------
+  peer0.regulatory.resl.com:
+    container_name: peer0.regulatory.resl.com
+    image: hyperledger/fabric-peer:latest
+    environment:
+      - CORE_PEER_ID=peer0.regulatory.resl.com
+      - CORE_PEER_LOCALMSPID=OrgRegulatoryMSP
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/msp
+      - CORE_PEER_ADDRESS=peer0.regulatory.resl.com:7051
+    volumes:
+      - ./crypto-config/peerOrganizations/regulatory.resl.com/peers/peer0.regulatory.resl.com/msp:/etc/hyperledger/msp
+      - ./crypto-config/peerOrganizations/regulatory.resl.com/peers/peer0.regulatory.resl.com/tls:/etc/hyperledger/tls
+      - peer0.regulatory.resl.com:/var/hyperledger/production
+    ports:
+      - 7051:7051
+    networks:
+      - fabric_network
+
+  peer0.brokerage.resl.com:
+    container_name: peer0.brokerage.resl.com
+    image: hyperledger/fabric-peer:latest
+    environment:
+      - CORE_PEER_ID=peer0.brokerage.resl.com
+      - CORE_PEER_LOCALMSPID=OrgBrokerageMSP
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/msp
+      - CORE_PEER_ADDRESS=peer0.brokerage.resl.com:8051
+    volumes:
+      - ./crypto-config/peerOrganizations/brokerage.resl.com/peers/peer0.brokerage.resl.com/msp:/etc/hyperledger/msp
+      - ./crypto-config/peerOrganizations/brokerage.resl.com/peers/peer0.brokerage.resl.com/tls:/etc/hyperledger/tls
+      - peer0.brokerage.resl.com:/var/hyperledger/production
+    ports:
+      - 8051:8051
+    networks:
+      - fabric_network
+
+  # ---------------------- CA Nodes ----------------------
+  ca.regulatory.resl.com:
+    image: hyperledger/fabric-ca:latest
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_SERVER_CA_NAME=ca-regulatory
+      - FABRIC_CA_SERVER_PORT=7054
+    ports:
+      - 7054:7054
+    command: sh -c 'fabric-ca-server start -b admin:adminpw -d'
+    volumes:
+      - ./crypto-config/peerOrganizations/regulatory.resl.com/ca:/etc/hyperledger/fabric-ca-server
+    networks:
+      - fabric_network
+
+  ca.brokerage.resl.com:
+    image: hyperledger/fabric-ca:latest
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_SERVER_CA_NAME=ca-brokerage
+      - FABRIC_CA_SERVER_PORT=8054
+    ports:
+      - 8054:8054
+    command: sh -c 'fabric-ca-server start -b admin:adminpw -d'
+    volumes:
+      - ./crypto-config/peerOrganizations/brokerage.resl.com/ca:/etc/hyperledger/fabric-ca-server
+    networks:
+      - fabric_network
+
+  # ---------------------- CLI Container ----------------------
+  cli:
+    container_name: cli
+    image: hyperledger/fabric-tools:latest
+    tty: true
+    environment:
+      - GOPATH=/opt/gopath
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - FABRIC_LOGGING_SPEC=INFO
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: /bin/bash
+    volumes:
+      - /var/run/:/host/var/run/
+      - ./crypto-config:/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/
+      - ./scripts:/opt/gopath/src/github.com/hyperledger/fabric/peer/scripts/
+      - ./channel-artifacts:/opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts
+    networks:
+      - fabric_network

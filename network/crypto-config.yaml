@@ -1,20 +1,76 @@
+# This file defines the cryptographic material configuration for the Hyperledger Fabric network.
+# It specifies the organizations, peers, and orderers involved in the network.
+
+# ---------------------------------------------------------------------------
 # "OrdererOrgs" - Definition of organizations managing orderer nodes
+# ---------------------------------------------------------------------------
 OrdererOrgs:
-  - Name: AuthorityOrg
-    Domain: hf.authority.io
-    # Specs is an array of Spec entries.  Each Spec entry consists of two fields : Hostname and CommonName
-    Specs:
-      - Hostname: orderer
+  - Name: Orderer # The organization managing the ordering nodes
+    Domain: resl.com # The root domain for the orderers' certificates
+    EnableNodeOUs: true # Enables Node Organizational Units (OUs) to distinguish between different node types
+
+    Specs: # List of orderer nodes for the ordering service
+      - Hostname: orderer1 # First orderer node
+        SANS:
+          - 127.0.0.1 # Subject Alternative Name (SAN) for local testing
+
+      - Hostname: orderer2 # Second orderer node
+        SANS:
+          - 127.0.0.1
+
+      - Hostname: orderer3 # Third orderer node
+        SANS:
+          - 127.0.0.1
+
+      - Hostname: orderer4 # Fourth orderer node
+        SANS:
+          - 127.0.0.1
+
+      - Hostname: orderer5 # Fifth orderer node
+        SANS:
+          - 127.0.0.1
+
+# ---------------------------------------------------------------------------
 # "PeerOrgs" - Definition of organizations managing peer nodes
+# Each organization represents a different group of participants in the network
+# ---------------------------------------------------------------------------
 PeerOrgs:
-  - Name: Org1RealEstateBrokerage
-    Domain: org1.hf.realestatebrokerage.io
-    # Allows for the definition of 1 or more hosts that are created sequentially
-    # from a template. By default, this looks like "peer%d" from 0 to Count-1.
-    # You may override the number of nodes (Count), the starting index (Start)
-    # or the template used to construct the name (Hostname).
+  - Name: OrgRegulatory # Organization representing regulatory bodies (CFPB, FTC, HUD, SEC)
+    Domain: regulatory.resl.com # Domain associated with this organization
+    EnableNodeOUs: true # Enables Node Organizational Units for identity differentiation
     Template:
-      Count: 2
+      Count: 2 # Number of committing peers in this organization
+      SANS:
+        - 127.0.0.1 # Allow access from localhost (useful for testing)
     Users:
-      # The number of user accounts _in addition_ to Admin
-      Count: 2
+      Count: 1 # Number of admin users for this organization
+
+  - Name: OrgBrokerage # Organization representing real estate brokerages (RE/MAX, Keller Williams)
+    Domain: brokerage.resl.com
+    EnableNodeOUs: true
+    Template:
+      Count: 2 # Each brokerage has endorsing and committing peers
+      SANS:
+        - 127.0.0.1
+    Users:
+      Count: 1 # One admin user for managing the organization
+
+  - Name: OrgLenders # Organization representing mortgage lenders & banks (e.g., JPMorgan)
+    Domain: lenders.resl.com
+    EnableNodeOUs: true
+    Template:
+      Count: 2 # Each lender has endorsing and committing peers
+      SANS:
+        - 127.0.0.1
+    Users:
+      Count: 1 # One admin user for managing the organization
+
+  - Name: OrgTitle # Organization representing title companies (e.g., First American, Fidelity)
+    Domain: title.resl.com
+    EnableNodeOUs: true
+    Template:
+      Count: 2 # Title companies have endorsing peers to validate title records
+      SANS:
+        - 127.0.0.1
+    Users:
+      Count: 1 # One admin user for managing the organization
